@@ -12,14 +12,11 @@ const scene = new THREE.Scene();
 
 const ellipseCurve = createEllipseCurveLine({
   center: [0, 0],
-  radius: [5, 3],
+  radius: [15, 15],
   color: [1, 1, 1],
   segments: 100,
 });
 scene.add(ellipseCurve);
-
-const circle = createCircleMesh({ radius: 2, position: [0, 0, 0], color: [1, 0, 0], segments: 100 });
-scene.add(circle);
 
 const circleRing = new CircleRing(scene, 15);
 
@@ -58,7 +55,7 @@ const camera = new THREE.OrthographicCamera(
   cameraParam.near,
   cameraParam.far,
 );
-camera.position.set(20, 20, 20);
+camera.position.set(0, 0, 20);
 camera.lookAt(scene.position);
 
 // Canvas
@@ -74,7 +71,7 @@ renderer.setClearColor('#000', 1);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const tick = () => {
-  mesh.rotation.x = clock.getElapsedTime() * Math.PI;
+  mesh.rotation.z = clock.getElapsedTime() * Math.PI;
   circleRing.update();
   controls.update();
   renderer.render(scene, camera);
