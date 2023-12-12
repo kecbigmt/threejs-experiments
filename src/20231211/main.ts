@@ -1,14 +1,21 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import GUI from 'lil-gui';
 
-import { createCircleMesh } from './shapes/circle';
 import { createEllipseCurveLine } from './shapes/ellipseCurve';
 import { CircleRing } from './CircleRing';
 import vertex from './shaders/vertex.glsl?raw';
 import fragment from './shaders/fragment.glsl?raw';
 
+import { initScene } from './line-i/scene';
+import { ScreenSpaceSketchMaterial } from './line-i/screenSpaceSketchMaterial';
+import { generateParams as generatePaperParams } from "./line-i/paper";
+
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
+
+const gui = new GUI();
+const materialFolder = gui.addFolder('Material');
 
 const ellipseCurve = createEllipseCurveLine({
   center: [0, 0],
@@ -17,13 +24,14 @@ const ellipseCurve = createEllipseCurveLine({
   segments: 100,
 });
 scene.add(ellipseCurve);
+gui.add(ellipseCurve, 'visible').name('ellipseCurve');
 
 const circleRing = new CircleRing(scene, 15);
 
 
 const geometry = new THREE.CircleGeometry( 10, 128 );
 
-const material = new THREE.ShaderMaterial({
+const material1 = new THREE.ShaderMaterial({
   extensions: {
     derivatives: true,
   },
@@ -35,28 +43,25 @@ const material = new THREE.ShaderMaterial({
   vertexShader: vertex,
   fragmentShader: fragment,
 });
-const mesh = new THREE.Mesh(geometry, material);
+const mesh = new THREE.Mesh(geometry, material1);
+mesh.position.set(0, 0, -2);
 scene.add(mesh);
 
 // Camera
-const cameraParam = {
-  left: -15,
-  right: 15,
-  top: 15,
-  bottom: -15,
-  near: 0.1,
-  far: 100,
-};
-const camera = new THREE.OrthographicCamera(
-  cameraParam.left,
-  cameraParam.right,
-  cameraParam.top,
-  cameraParam.bottom,
-  cameraParam.near,
-  cameraParam.far,
-);
-camera.position.set(0, 0, 20);
-camera.lookAt(scene.position);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+camera.position.set(0, 0, 19);
+
+const material = new ScreenSpaceSketchMaterial({
+  color: 0x808080,
+  roughness: 0.4,
+  metalness: 0.1,
+  side: THREE.DoubleSide,
+});
+
+initScene(scene, material, gui);
+
+const paperController = generatePaperParams(materialFolder, material);
+paperController.setValue("Watercolor cold press");
 
 // Canvas
 const canvas = document.querySelector<HTMLCanvasElement>('#myCanvas');
@@ -67,15 +72,18 @@ const controls = new OrbitControls(camera, canvas);
 
 // Renderer
 const renderer = new THREE.WebGLRenderer({ canvas });
-renderer.setClearColor('#000', 1);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0xffffff, 1);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const tick = () => {
+const render = () => {
   mesh.rotation.z = clock.getElapsedTime() * Math.PI;
   circleRing.update();
   controls.update();
   renderer.render(scene, camera);
-  window.requestAnimationFrame(tick);
-};
+  renderer.setAnimationLoop(render);
+}
 
-tick();
+render();
